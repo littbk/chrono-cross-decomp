@@ -194,6 +194,9 @@ u32 ChannelMaskToVoiceMask( FSoundChannel* in_pChannel, u32 in_ChannelMask )
 }
 
 //----------------------------------------------------------------------------------------------------------------------
+#ifndef NON_MATCHING
+INCLUDE_ASM( "asm/slps_023.64/nonmatchings/system/sound2", Sound_LoadAkaoSequence );
+#else
 void Sound_LoadAkaoSequence(FAkaoSequence* in_Sequence, s32 in_Mask) {
     FSoundChannel* var_s3;
     FSoundKeymapEntry8* var_a1_2;
@@ -334,6 +337,7 @@ void Sound_LoadAkaoSequence(FAkaoSequence* in_Sequence, s32 in_Mask) {
     g_pActiveMusicContext->PendingKeyOnMask = 0;
     g_Sound_GlobalFlags.UpdateFlags |= 0x100;
 }
+#endif
 
 //----------------------------------------------------------------------------------------------------------------------
 void Sound_KillMusicContext( FSoundMusicContext* in_Context, FSoundChannel* in_pChannel, u32 in_MusicId )

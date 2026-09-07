@@ -620,7 +620,120 @@ s32 func_8004AC0C()
 }
 
 //----------------------------------------------------------------------------------------------------------------------
-INCLUDE_ASM("asm/slps_023.64/nonmatchings/system/soundApi", func_8004AC2C);
+typedef struct
+{
+    FSoundInstrumentInfo* InstrumentData;
+    u32 SpuAddress;
+    u32 SampleBytesRemaining;
+    u32 InstrumentBytesRemaining;
+} FSoundInstrumentTransfer;
+static_assert( sizeof( FSoundInstrumentTransfer ) == 0x10 );
+extern FAkaoSequence D_80092A68;
+extern FSoundInstrumentTransfer D_80095060;
+// Alias of D_80095060.SampleBytesRemaining, also referenced independently by the original code.
+extern s32 D_80095068;
+s32 Sound_TransferInstrumentBankChunk( s32* in_Data, u32 in_Size, s32 in_bWait )
+{
+    FSoundInstrumentInfo* instruments;
+    s32 instrumentIndex;
+    s32* data;
+    u32 instrumentBytesRemaining;
+    u32 wordsCopied;
+    u32 copySize;
+    u32 bytesRemaining;
+    u32 sampleBytes;
+    s32 wait;
+    u32 spuAddress;
+    data = in_Data;
+    bytesRemaining = in_Size;
+    wait = in_bWait;
+    if( g_Sound_GlobalFlags.ControlLatches & SOUND_CTL_INSTRUMENT_TRANSFER_ACTIVE )
+    {
+        if( D_80095060.SpuAddress == 0 )
+        {
+            if( Sound_IsNotAkaoFile( in_Data ) == false )
+            {
+                memcpy32( data, (s32*)( &D_80092A68 ), 0x40U );
+                data += 0x40 / ( sizeof( *data ) );
+                spuAddress = D_80092A68.unk10;
+                instrumentIndex = D_80092A68.unk18;
+                bytesRemaining -= 0x40;
+                D_80095060.SpuAddress = spuAddress;
+                D_80092A68.unk18 = instrumentIndex;
+                D_80095060.SampleBytesRemaining = (u32)D_80092A68.unk14;
+                D_80095060.InstrumentData = &g_InstrumentInfo[instrumentIndex];
+                D_80095060.InstrumentBytesRemaining = (u32)( D_80092A68.unk1C * 0x10 );
+            }
+            else
+            {
+                Sound_PlaySfxProtected( VOICE_INVALID_INDEX );
+                bytesRemaining = 0;
+                D_80095060.SampleBytesRemaining = 0U;
+                D_80095060.InstrumentBytesRemaining = 0U;
+            }
+        }
+        if( D_80095060.InstrumentBytesRemaining != 0 )
+        {
+            copySize = D_80095060.InstrumentBytesRemaining;
+            if( bytesRemaining != 0 )
+            {
+                if( copySize >= bytesRemaining )
+                {
+                    copySize = bytesRemaining;
+                }
+                // Keep this block to preserve the original GCC instruction scheduling.
+                do
+                {
+                    memcpy32( data, (s32*)D_80095060.InstrumentData, copySize );
+                    wordsCopied = copySize >> 2;
+                } while( 0 );
+                data = &data[wordsCopied];
+                instrumentBytesRemaining = D_80095060.InstrumentBytesRemaining - copySize;
+                D_80095060.InstrumentData = (FSoundInstrumentInfo*)( ( (s32*)D_80095060.InstrumentData ) + wordsCopied );
+                D_80095060.InstrumentBytesRemaining = instrumentBytesRemaining;
+                bytesRemaining -= copySize;
+                if( instrumentBytesRemaining == 0 )
+                {
+                    instruments = &g_InstrumentInfo[D_80092A68.unk18];
+                    Sound_CopyAndRelocateInstruments( instruments, instruments, D_80092A68.unk10, D_80092A68.unk1C );
+                }
+                goto transferSamples;
+            }
+            goto checkCompletion;
+        }
+    transferSamples:
+        if( bytesRemaining != 0 )
+        {
+            if( D_80095060.SampleBytesRemaining != 0 )
+            {
+                sampleBytes = D_80095060.SampleBytesRemaining;
+                if( sampleBytes >= bytesRemaining )
+                {
+                    sampleBytes = bytesRemaining;
+                }
+                bytesRemaining = sampleBytes;
+                SpuSetTransferStartAddr( (u32)D_80095060.SpuAddress );
+                WriteSpu( (s32)data, (s32)bytesRemaining );
+                D_80095060.SpuAddress = (s32)( D_80095060.SpuAddress + bytesRemaining );
+                D_80095060.SampleBytesRemaining = (u32)( D_80095060.SampleBytesRemaining - bytesRemaining );
+                if( wait != 0 )
+                {
+                    WaitForSpuTransfer();
+                }
+                goto checkCompletion;
+            }
+            goto finishTransfer;
+        }
+
+    checkCompletion:
+        if( D_80095068 == 0 )
+        {
+        finishTransfer:
+            g_Sound_GlobalFlags.ControlLatches &= ~SOUND_CTL_INSTRUMENT_TRANSFER_ACTIVE;
+        }
+    }
+    return D_80095068;
+}
 
 //----------------------------------------------------------------------------------------------------------------------
 void* func_8004AE4C( void* arg0, s32 arg1, s32 arg2 )

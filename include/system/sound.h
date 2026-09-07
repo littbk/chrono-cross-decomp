@@ -631,6 +631,7 @@ void ReadSpu( s32 in_Addr, s32 in_Size );
 void WaitForSpuTransfer();
 s32 Sound_TryLoadInstrumentBank( FAkaoSequence* in_pAkao, s32 arg1 );
 s32 Sound_LoadInstrumentBank( FAkaoSequence* in_Akao, s32 in_bWait, s32 arg2, u32 in_StartAddr );
+s32 Sound_TransferInstrumentBankChunk( s32* in_Data, u32 in_Size, s32 in_bWait );
 void Sound_Setup();
 void Sound_Start();
 void Sound_Stop();
