@@ -170,7 +170,7 @@ def _find_symbol_unit(repo_root: Path, symbol: str) -> tuple[dict, Path, Path]:
             target_path = (repo_root / unit["target_path"]).resolve()
             if not base_path.is_file() or not target_path.is_file():
                 continue
-            if symbol in _get_defined_text_symbols(base_path) and \
+            if (symbol in _get_defined_text_symbols(base_path) or f"{symbol}.NON_MATCHING" in _get_defined_text_symbols(base_path)) and \
                symbol in _get_defined_text_symbols(target_path):
                 matches.append((unit, base_path, target_path))
 

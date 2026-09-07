@@ -35,7 +35,7 @@ def find_symbol_pair(data: dict, symbol: str):
     right_symbols = data["right"]["symbols"]
 
     left_matches  = [s for s in left_symbols  if s.get("name") == symbol]
-    right_matches = [s for s in right_symbols if s.get("name") == symbol]
+    right_matches = [s for s in right_symbols if s.get("name") == symbol or s.get("name") == f"{symbol}.NON_MATCHING"]
 
     if not left_matches:
         raise RuntimeError(f"Symbol '{symbol}' not found in left.symbols")

@@ -254,7 +254,7 @@ clean-progress: clean
 
 # Lazy tools
 generate-clangd-metadata:
-	./tools/scripts/generate_compile_commands.py
+	$(PYTHON) $(SCRIPTS_DIR)/generate_compile_commands.py
 
 build-pcsx-tools:
 	./tools/scripts/build_pcsx_tools.sh
